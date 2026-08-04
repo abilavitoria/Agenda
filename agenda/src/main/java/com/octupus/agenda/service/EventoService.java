@@ -27,11 +27,39 @@ public class EventoService {
         return new EventoResponse((salvo));
     }
 
-    @Transactional(ready)
+    @Transactional
     public List<EventoResponse> listarTodos(){
         return eventoRepo.findAll()
                 .stream()
                 .map(EventoResponse::new)
                 .toList();
+    }
+
+    @Transactional
+    public EventoResponse buscarPorId(Long id){
+        Evento evento = eventoRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evento não encontrado:" + id));
+        return new EventoResponse(evento);
+    }
+
+    @Transactional
+    public EventoResponse atualizar(Long id, EventoRequest eventoRequest){
+        Evento evento = eventoRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evento não encontrado:" + id));
+        evento.setTitulo(eventoRequest.titulo());
+        evento.setDataEvento(eventoRequest.dataEvento());
+        evento.setDataLembrete(eventoRequest.dataLembrete());
+        evento.setCategoria(eventoRequest.categoria());
+
+        Evento eventoAtualizado = eventoRepo.save(evento);
+        return new EventoResponse(eventoAtualizado);
+    }
+
+    @Transactional
+    public void deletar(Long id){
+        if(!eventoRepo.existsById(id)){
+            throw new RuntimeException("Evento não encontrado:" + id);
+        }
+        eventoRepo.deleteById(id);
     }
 }
