@@ -8,7 +8,6 @@ public record ClienteRequest(
         @NotBlank(message = "O nome é obrigatório")
         @Size(max = 255, message = "O nome pode ter no máximo")
         String nome,
-
         @NotNull
         String documento,
         String telefone,

@@ -24,7 +24,7 @@ public class EventoService {
         evento.setCategoria(eventoRequest.categoria());
 
         Evento salvo = eventoRepo.save(evento);
-        return new EventoResponse((salvo));
+        return new EventoResponse(salvo);
     }
 
     @Transactional
