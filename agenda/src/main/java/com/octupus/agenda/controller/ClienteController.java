@@ -43,7 +43,7 @@ public class ClienteController {
         return ResponseEntity.ok(cliente);
     }
 
-    @PutMapping
+    @PutMapping("/{id}")
     public ResponseEntity<ClienteResponse> atualizarCliente(
             @PathVariable Long id,
             @RequestBody @Valid ClienteRequest cliente
@@ -52,6 +52,7 @@ public class ClienteController {
         return ResponseEntity.ok(clienteAtualizado);
     }
 
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarCliente(@PathVariable Long id){
         clienteService.deletar(id);
         return ResponseEntity.noContent().build();
