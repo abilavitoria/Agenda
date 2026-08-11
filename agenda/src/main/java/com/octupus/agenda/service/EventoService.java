@@ -1,5 +1,6 @@
 package com.octupus.agenda.service;
 
+import com.octupus.agenda.exeptions.EventoNaoEncontrado;
 import com.octupus.agenda.model.Evento;
 import com.octupus.agenda.model.dto.EventoRequest;
 import com.octupus.agenda.model.dto.EventoResponse;
@@ -38,7 +39,7 @@ public class EventoService {
     @Transactional
     public EventoResponse buscarPorId(Long id){
         Evento evento = eventoRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Evento não encontrado:" + id));
+                .orElseThrow(() -> new EventoNaoEncontrado("Evento não encontrado:" + id));
         return new EventoResponse(evento);
     }
 
