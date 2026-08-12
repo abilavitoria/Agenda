@@ -54,7 +54,7 @@ class HomeScream extends StatelessWidget {
             const Spacer(),
 
             Center(
-              child: GestureDetector(
+              child: GestureContainer(
                 onTap: () => _exibirModalGravacao(context),
               ),
             ),
@@ -102,5 +102,83 @@ class HomeScream extends StatelessWidget {
     );
   }
 
-  void _exibirModalGravacao(BuildContext context) {}
+  void _exibirModalGravacao(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context){
+        return Padding(
+          padding: EdgeInsets.only(
+            top: 24,
+            left: 24,
+            right: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Ouvindo...',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20,),
+                const Icon(Icons.graphic_eq, size: 60, color: Colors.deepPurple,),
+                const SizedBox(height: 20,),
+                const Text(
+                  'Fale o título e a data do próximo evento. \nExemplo: "Casamento no dia 20 de abril de 2027 às 16h"',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 30,),
+                ElevatedButton(
+                  onPressed: (){
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: const Text('Confirmar e salvar', style: TextStyle(color: Colors.white)),
+                  )
+              ],
+            ),
+          );
+      }
+    );
+  }
+}
+
+class GestureContainer extends StatelessWidget{
+  final VoidCallback onTap;
+  const GestureContainer({super.key, required this.onTap});
+
+  Widget build(BuildContext context){
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 160,
+        height: 160,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.deepPurple,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.deepPurple.withOpacity(0.3),
+              blurRadius: 25,
+              spreadRadius: 10,
+
+            )
+          ]
+        ),
+        child: const Icon(
+          Icons.mic,
+          size: 80,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
 }
