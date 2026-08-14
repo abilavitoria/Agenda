@@ -14,7 +14,6 @@ class HomeScream extends StatefulWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     throw UnimplementedError();
   }
 }
@@ -55,7 +54,7 @@ class HomeScream extends StatefulWidget {
                 style: TextStyle( color: colorScheme.primary, fontWeight: FontWeight.bold),
               ),
               style: TextButton.styleFrom(
-                backgroundColor: colorScheme.primary.withOpacity(0.15),
+                backgroundColor: colorScheme.primary.withValues(),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 )
@@ -75,7 +74,7 @@ class HomeScream extends StatefulWidget {
               child: Text(
                 'Toque no botão abaixo para ditar seu evento',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, color: colorScheme.onSurface.withOpacity(0.7),
+                style: TextStyle(fontSize: 18, color: colorScheme.onSurface.withValues(),
                 ),
               ),
               ),
@@ -94,8 +93,8 @@ class HomeScream extends StatefulWidget {
                     boxShadow: [
                       BoxShadow(
                         color: widget.isDarkMode
-                          ? colorScheme.primary.withOpacity(0.6)
-                          : colorScheme.primary.withOpacity(0.35),
+                          ? colorScheme.primary.withValues()
+                          : colorScheme.primary.withValues(),
                         blurRadius: widget.isDarkMode ? 35 : 20,
                         spreadRadius: widget.isDarkMode ? 8 : 4,                
                       )
@@ -134,7 +133,7 @@ class HomeScream extends StatefulWidget {
                     children: [
                       Text(
                         'Próximo evento:',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colorScheme.onSurface.withOpacity(0.6)
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colorScheme.onSurface.withValues()
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -223,7 +222,7 @@ class _ModalConteudoGravacaoState extends State<ModalGravacaoConteudo>
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: colorScheme.primary.withOpacity(0.15)
+                    color: colorScheme.primary.withValues()
                   ),
 
                   child: Icon(
@@ -251,7 +250,7 @@ class _ModalConteudoGravacaoState extends State<ModalGravacaoConteudo>
                   style: TextStyle(
                     fontSize: 15,
                     height: 1.3,
-                    color: colorScheme.onSurface.withOpacity(0.7) 
+                    color: colorScheme.onSurface.withValues()
                   ),
                 ),
                 const SizedBox(height: 32),
