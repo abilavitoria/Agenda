@@ -10,6 +10,7 @@ class HomeScream extends StatefulWidget {
     required this.isDarkMode,
     });
 
+  @override
   State<HomeScream> createState() => _HomeScreamState();
 
   @override
@@ -119,7 +120,7 @@ class HomeScream extends StatefulWidget {
                 color: colorScheme.onSurface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: colorScheme.primary.withOpacity(widget.isDarkMode ? 0.4 : 0.25),
+                  color: colorScheme.primary.withValues(alpha: widget.isDarkMode ? 0.4 : 0.25),
                   width: 1.5,
                 ),
               ),
