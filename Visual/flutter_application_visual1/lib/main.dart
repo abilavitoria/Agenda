@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_visual1/homescream.dart';
-
+import 'package:flutter_application_visual1/homescram.dart';
 void main() {
   runApp(const AgendaApp());
 }
@@ -55,12 +54,10 @@ class _AgendaAppState extends State<AgendaApp> {
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: _themeMode,
-      home: HomeScream(
-        onToggleTheme: _toggleTheme,
+      home:  HomeScream(
+        onToogleTheme: _toggleTheme,
         isDarkMode: _themeMode == ThemeMode.dark,
       ),
     );
   }
 }
-
-
