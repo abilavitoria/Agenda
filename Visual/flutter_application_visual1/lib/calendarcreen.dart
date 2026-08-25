@@ -35,6 +35,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _changeMonth(int increment) {
     setState(() {
       _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + increment, 1);
+      _selectedDate = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
     });
   }
 
@@ -59,7 +60,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 📌 2/3 DA TELA: CALENDÁRIO MENSAL
             Expanded(
               flex: 2,
               child: Padding(
@@ -74,7 +74,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     padding: const EdgeInsets.all(12.0),
                     child: Column(
                       children: [
-                        // Navegação de Mês e Ano (< Mês Ano >)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -96,7 +95,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        // Dias da Semana (Dom, Seg, Ter...)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: _weekDays.map((day) {
@@ -114,13 +112,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           }).toList(),
                         ),
                         const Divider(height: 16),
-                        // Grade dos Dias
-                        Expanded(
+                          Expanded(
                           child: GridView.builder(
                             physics: const NeverScrollableScrollPhysics(),
                             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 7,
-                              childAspectRatio: 1.1,
+                              childAspectRatio: 1.0,
                             ),
                             itemCount: daysInMonth + firstWeekday,
                             itemBuilder: (context, index) {
@@ -152,7 +149,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     color: isSelected
                                         ? theme.colorScheme.primary
                                         : (isToday
-                                            ? theme.colorScheme.primary.withValues()
+                                            ? theme.colorScheme.primary.withValues(alpha: 0.15)
                                             : Colors.transparent),
                                     borderRadius: BorderRadius.circular(10),
                                     border: isToday && !isSelected
@@ -197,14 +194,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ),
 
-            // 📌 1/3 DA TELA: PRÓXIMOS EVENTOS DO DIA SELECIONADO
             Expanded(
               flex: 1,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
+                  color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(24),
@@ -225,7 +221,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                         Icon(
                           Icons.event_note,
-                          color: theme.colorScheme.secondary,
+                          color: theme.colorScheme.primary,
                         ),
                       ],
                     ),
@@ -236,7 +232,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               child: Text(
                                 'Nenhum evento agendado para este dia.',
                                 style: TextStyle(
-                                  color: theme.colorScheme.onSurface.withValues(),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                             )
@@ -246,12 +242,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 final event = selectedEvents[index];
                                 return Card(
                                   margin: const EdgeInsets.symmetric(vertical: 4),
-                                  color: theme.scaffoldBackgroundColor,
+                                  elevation: 0,
+                                  color: theme.colorScheme.surface,
                                   child: ListTile(
                                     leading: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: theme.colorScheme.primary.withValues(),
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(

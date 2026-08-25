@@ -19,7 +19,7 @@ class HomeScream extends StatefulWidget {
 }
 
   class _HomeScreamState extends State<HomeScream>{
-      @override
+    @override
     Widget build(BuildContext context) {
       final theme = Theme.of(context);
       final colorScheme = theme.colorScheme;
@@ -54,7 +54,7 @@ class HomeScream extends StatefulWidget {
                 style: TextStyle( color: colorScheme.primary, fontWeight: FontWeight.bold),
               ),
               style: TextButton.styleFrom(
-                backgroundColor: colorScheme.primary.withValues(),
+                backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 )
@@ -68,18 +68,16 @@ class HomeScream extends StatefulWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-
            Padding( 
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Text(
                 'Toque no botão abaixo para ditar seu evento',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, color: colorScheme.onSurface.withValues(),
+                style: TextStyle(fontSize: 18, color: colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
               ),
             const Spacer(),
-
             Center(
               child: GestureContainer(
                 onTap: () => _exibirModalGravacao(context),
@@ -92,15 +90,13 @@ class HomeScream extends StatefulWidget {
                     color: colorScheme.primary,
                     boxShadow: [
                       BoxShadow(
-                        color: widget.isDarkMode
-                          ? colorScheme.primary.withValues()
-                          : colorScheme.primary.withValues(),
-                        blurRadius: widget.isDarkMode ? 35 : 20,
-                        spreadRadius: widget.isDarkMode ? 8 : 4,                
+                        color:
+                          colorScheme.primary.withValues(alpha: widget.isDarkMode ? 0.5 : 0.3),
+                          blurRadius: widget.isDarkMode ? 35 : 20,
+                          spreadRadius: widget.isDarkMode ? 8 : 4,                
                       )
                     ]
                   ),
-
                   child: const Icon(
                     Icons.mic,
                     size: 85,
@@ -109,9 +105,7 @@ class HomeScream extends StatefulWidget {
                   )
               ),
             ),
-
             const Spacer(),
-
             Container(
               margin: const EdgeInsets.all(20),
               padding: const EdgeInsets.all(16),
@@ -133,7 +127,7 @@ class HomeScream extends StatefulWidget {
                     children: [
                       Text(
                         'Próximo evento:',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colorScheme.onSurface.withValues()
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colorScheme.onSurface.withValues(alpha: 0.6)
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -152,9 +146,6 @@ class HomeScream extends StatefulWidget {
     );
   }
 }
-
-
-
   void _exibirModalGravacao(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -222,7 +213,7 @@ class _ModalConteudoGravacaoState extends State<ModalGravacaoConteudo>
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: colorScheme.primary.withValues()
+                    color: colorScheme.primary.withValues(alpha: 0.15)
                   ),
 
                   child: Icon(
@@ -233,7 +224,6 @@ class _ModalConteudoGravacaoState extends State<ModalGravacaoConteudo>
                 ),
                 ),
                 const SizedBox(height: 32),
-
                 Text(
                   'Fale o título e a data do seu evento',
                   textAlign: TextAlign.center,
@@ -250,11 +240,10 @@ class _ModalConteudoGravacaoState extends State<ModalGravacaoConteudo>
                   style: TextStyle(
                     fontSize: 15,
                     height: 1.3,
-                    color: colorScheme.onSurface.withValues()
+                    color: colorScheme.surface.withValues(alpha: 0.6)
                   ),
                 ),
                 const SizedBox(height: 32),
-
                 ElevatedButton(
                   onPressed: () => {
                     Navigator.pop(context),
