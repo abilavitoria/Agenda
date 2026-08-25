@@ -26,15 +26,37 @@ class _CalendarScreenState extends State<CalendarScreen> {
   };
 
   final List<String> _monthNames = const [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
 
-  final List<String> _weekDays = const ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  final List<String> _weekDays = const [
+    'Dom',
+    'Seg',
+    'Ter',
+    'Qua',
+    'Qui',
+    'Sex',
+    'Sáb',
+  ];
 
   void _changeMonth(int increment) {
     setState(() {
-      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + increment, 1);
+      _focusedMonth = DateTime(
+        _focusedMonth.year,
+        _focusedMonth.month + increment,
+        1,
+      );
       _selectedDate = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
     });
   }
@@ -46,8 +68,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final daysInMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0).day;
-    final firstWeekday = DateTime(_focusedMonth.year, _focusedMonth.month, 1).weekday % 7;
+    final daysInMonth = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month + 1,
+      0,
+    ).day;
+    final firstWeekday =
+        DateTime(_focusedMonth.year, _focusedMonth.month, 1).weekday % 7;
 
     final selectedKey = _formatDateKey(_selectedDate);
     final selectedEvents = _events[selectedKey] ?? [];
@@ -56,6 +83,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
       appBar: AppBar(
         title: const Text('Calendário & Agenda'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.list_alt),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AllEventsScreen(
+                    events: _events,
+                    onEventUpdate: () => setState(() {}),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -112,13 +155,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           }).toList(),
                         ),
                         const Divider(height: 16),
-                          Expanded(
+                        Expanded(
                           child: GridView.builder(
                             physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 7,
-                              childAspectRatio: 1.0,
-                            ),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 7,
+                                  childAspectRatio: 1.0,
+                                ),
                             itemCount: daysInMonth + firstWeekday,
                             itemBuilder: (context, index) {
                               if (index < firstWeekday) {
@@ -126,16 +170,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               }
 
                               final dayNumber = index - firstWeekday + 1;
-                              final date = DateTime(_focusedMonth.year, _focusedMonth.month, dayNumber);
-                              final isSelected = date.year == _selectedDate.year &&
+                              final date = DateTime(
+                                _focusedMonth.year,
+                                _focusedMonth.month,
+                                dayNumber,
+                              );
+                              final isSelected =
+                                  date.year == _selectedDate.year &&
                                   date.month == _selectedDate.month &&
                                   date.day == _selectedDate.day;
-                              final isToday = date.year == DateTime.now().year &&
+                              final isToday =
+                                  date.year == DateTime.now().year &&
                                   date.month == DateTime.now().month &&
                                   date.day == DateTime.now().day;
 
                               final dateKey = _formatDateKey(date);
-                              final hasEvents = _events.containsKey(dateKey) && _events[dateKey]!.isNotEmpty;
+                              final hasEvents =
+                                  _events.containsKey(dateKey) &&
+                                  _events[dateKey]!.isNotEmpty;
 
                               return GestureDetector(
                                 onTap: () {
@@ -149,11 +201,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     color: isSelected
                                         ? theme.colorScheme.primary
                                         : (isToday
-                                            ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                                            : Colors.transparent),
+                                              ? theme.colorScheme.primary
+                                                    .withValues(alpha: 0.15)
+                                              : Colors.transparent),
                                     borderRadius: BorderRadius.circular(10),
                                     border: isToday && !isSelected
-                                        ? Border.all(color: theme.colorScheme.primary)
+                                        ? Border.all(
+                                            color: theme.colorScheme.primary,
+                                          )
                                         : null,
                                   ),
                                   child: Stack(
@@ -162,7 +217,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       Text(
                                         '$dayNumber',
                                         style: TextStyle(
-                                          fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+                                          fontWeight: isSelected || isToday
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
                                           color: isSelected
                                               ? Colors.white
                                               : theme.colorScheme.onSurface,
@@ -175,7 +232,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                             width: 5,
                                             height: 5,
                                             decoration: BoxDecoration(
-                                              color: isSelected ? theme.colorScheme.secondary : theme.colorScheme.primary,
+                                              color: isSelected
+                                                  ? theme.colorScheme.secondary
+                                                  : theme.colorScheme.primary,
                                               shape: BoxShape.circle,
                                             ),
                                           ),
@@ -232,7 +291,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               child: Text(
                                 'Nenhum evento agendado para este dia.',
                                 style: TextStyle(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.6,
+                                  ),
                                 ),
                               ),
                             )
@@ -241,14 +302,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               itemBuilder: (context, index) {
                                 final event = selectedEvents[index];
                                 return Card(
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
                                   elevation: 0,
                                   color: theme.colorScheme.surface,
                                   child: ListTile(
                                     leading: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                        color: theme.colorScheme.primary
+                                            .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
@@ -259,9 +323,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     ),
                                     title: Text(
                                       event['title']!,
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                    subtitle: Text('${event['time']} • ${event['tag']}'),
+                                    subtitle: Text(
+                                      '${event['time']} • ${event['tag']}',
+                                    ),
                                     trailing: Icon(
                                       Icons.check_circle_outline,
                                       color: theme.colorScheme.secondary,
@@ -278,6 +346,186 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class AllEventsScreen extends StatefulWidget {
+  final Map<String, List<Map<String, String>>> events;
+  final VoidCallback onEventUpdate;
+
+  const AllEventsScreen({
+    super.key,
+    required this.events,
+    required this.onEventUpdate,
+  });
+
+  @override
+  State<AllEventsScreen> createState() => _AllEventsScreenState();
+}
+
+class _AllEventsScreenState extends State<AllEventsScreen> {
+  List<Map<String, dynamic>> _getUpcomingEvents() {
+    final List<Map<String, dynamic>> upcoming = [];
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+
+    widget.events.forEach((dateStr, eventList) {
+      final parts = dateStr.split('-');
+      final date = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+
+      if (!date.isBefore(todayStart)) {
+        for (int i = 0; i < eventList.length; i++) {
+          upcoming.add({
+            'dateKey': dateStr,
+            'date': date,
+            'index': i,
+            'event': eventList[i],
+          });
+        }
+      }
+    });
+
+    upcoming.sort(
+      (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime),
+    );
+    return upcoming;
+  }
+
+  void _editEventDialog(
+    String dateKey,
+    int index,
+    Map<String, String> currentEvent,
+  ) {
+    final titleController = TextEditingController(text: currentEvent['title']);
+    final timeController = TextEditingController(text: currentEvent['time']);
+    final tagController = TextEditingController(text: currentEvent['tag']);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar Evento'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Título'),
+                ),
+                TextField(
+                  controller: timeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Horário (ex: 14:00)',
+                  ),
+                ),
+                TextField(
+                  controller: tagController,
+                  decoration: const InputDecoration(
+                    labelText: 'Categoria / Tag',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  widget.events[dateKey]![index] = {
+                    'title': titleController.text,
+                    'time': timeController.text,
+                    'tag': tagController.text,
+                  };
+                });
+                widget.onEventUpdate();
+                Navigator.pop(context);
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final upcomingEvents = _getUpcomingEvents();
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Próximos eventos')),
+      body: upcomingEvents.isEmpty
+          ? const Center(child: Text('Nenhum evento futuro encontrado'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: upcomingEvents.length,
+              itemBuilder: (context, i) {
+                final item = upcomingEvents[i];
+                final DateTime date = item['date'];
+                final Map<String, String> event = item['event'];
+
+                return Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      child: Text(
+                        '${date.day}',
+                        style: TextStyle(
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      event['title']!,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} às ${event['time']} • ${event['tag']}',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => _editEventDialog(
+                            item['dateKey'],
+                            item['index'],
+                            event,
+                          ),
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              final String key = item['dateKey'];
+                              widget.events[key]!.removeAt(item['index']);
+                              if (widget.events[key]!.isEmpty) {
+                                widget.events.remove(key);
+                              }
+                            });
+                            widget.onEventUpdate();
+                          },
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
