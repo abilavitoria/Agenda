@@ -42,7 +42,7 @@ public class EventoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EventoResponse> ataualizaEvento(
+    public ResponseEntity<EventoResponse> atualizarEvento(
             @PathVariable Long id,
             @RequestBody @Valid EventoRequest evento
     ){
