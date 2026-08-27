@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
 
@@ -35,11 +35,17 @@ class _LoginScreenState extends State<LoginScreen>
   bool _obscureLoginPassword = true;
   bool _obscureRegisterPassword = true;
   bool _isLoading = false;
+  int _activeTab = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() => _activeTab = _tabController.index);
+      }
+    });
   }
 
   @override
@@ -245,18 +251,15 @@ class _LoginScreenState extends State<LoginScreen>
                         // Conteúdo das Abas
                         Padding(
                           padding: const EdgeInsets.all(20.0),
-                          child: SizedBox(
-                            height: 300,
-                            child: TabBarView(
-                              controller: _tabController,
-                              children: [
-                                // Aba Entrar
-                                _buildLoginForm(colorScheme, isDark),
+                          child: IndexedStack(
+                            index: _activeTab,
+                            children: [
+                              // Aba Entrar
+                              _buildLoginForm(colorScheme, isDark),
 
-                                // Aba Cadastrar
-                                _buildRegisterForm(colorScheme, isDark),
-                              ],
-                            ),
+                              // Aba Cadastrar
+                              _buildRegisterForm(colorScheme, isDark),
+                            ],
                           ),
                         ),
                       ],
@@ -275,149 +278,138 @@ class _LoginScreenState extends State<LoginScreen>
     return Form(
       key: _loginFormKey,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            children: [
-              TextFormField(
-                controller: _loginEmailController,
-                style: TextStyle(color: colorScheme.onSurface),
-                decoration: const InputDecoration(
-                  labelText: 'E-mail ou Usuário',
-                  hintText: 'exemplo@email.com',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Informe seu e-mail';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _loginPasswordController,
-                obscureText: _obscureLoginPassword,
-                style: TextStyle(color: colorScheme.onSurface),
-                decoration: InputDecoration(
-                  labelText: 'Senha',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureLoginPassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureLoginPassword = !_obscureLoginPassword;
-                      });
-                    },
-                  ),
-                ),
-                validator: (val) {
-                  if (val == null || val.length < 4) {
-                    return 'A senha deve ter no mínimo 4 caracteres';
-                  }
-                  return null;
-                },
-              ),
-            ],
+          TextFormField(
+            controller: _loginEmailController,
+            style: TextStyle(color: colorScheme.onSurface),
+            decoration: const InputDecoration(
+              hintText: 'exemplo@email.com',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return 'Informe seu e-mail';
+              }
+              return null;
+            },
           ),
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('Entrar no Sistema'),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _loginPasswordController,
+            obscureText: _obscureLoginPassword,
+            style: TextStyle(color: colorScheme.onSurface),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureLoginPassword
+                      ? Icons.visibility_off
+                      : Icons.visibility,
                 ),
+                onPressed: () {
+                  setState(() {
+                    _obscureLoginPassword = !_obscureLoginPassword;
+                  });
+                },
               ),
-            ],
+            ),
+            validator: (val) {
+              if (val == null || val.length < 4) {
+                return 'A senha deve ter no mínimo 4 caracteres';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _handleLogin,
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Entrar no Sistema'),
+            ),
           ),
         ],
       ),
     );
   }
 
+
   Widget _buildRegisterForm(ColorScheme colorScheme, bool isDark) {
     return Form(
       key: _registerFormKey,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            children: [
-              TextFormField(
-                controller: _registerNameController,
-                style: TextStyle(color: colorScheme.onSurface),
-                decoration: const InputDecoration(
-                  labelText: 'Nome Completo',
-                  hintText: 'Seu nome',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Informe seu nome';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _registerEmailController,
-                style: TextStyle(color: colorScheme.onSurface),
-                decoration: const InputDecoration(
-                  labelText: 'E-mail',
-                  hintText: 'seu@email.com',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                validator: (val) {
-                  if (val == null || !val.contains('@')) {
-                    return 'Informe um e-mail válido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _registerPasswordController,
-                obscureText: _obscureRegisterPassword,
-                style: TextStyle(color: colorScheme.onSurface),
-                decoration: InputDecoration(
-                  labelText: 'Criar Senha',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureRegisterPassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureRegisterPassword = !_obscureRegisterPassword;
-                      });
-                    },
-                  ),
-                ),
-                validator: (val) {
-                  if (val == null || val.length < 4) {
-                    return 'Mínimo de 4 caracteres';
-                  }
-                  return null;
-                },
-              ),
-            ],
+          TextFormField(
+            controller: _registerNameController,
+            style: TextStyle(color: colorScheme.onSurface),
+            decoration: const InputDecoration(
+              labelText: 'Nome Completo',
+              hintText: 'Seu nome',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return 'Informe seu nome';
+              }
+              return null;
+            },
           ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: _registerEmailController,
+            style: TextStyle(color: colorScheme.onSurface),
+            decoration: const InputDecoration(
+              labelText: 'E-mail',
+              hintText: 'seu@email.com',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+            validator: (val) {
+              if (val == null || !val.contains('@')) {
+                return 'Informe um e-mail válido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: _registerPasswordController,
+            obscureText: _obscureRegisterPassword,
+            style: TextStyle(color: colorScheme.onSurface),
+            decoration: InputDecoration(
+              labelText: 'Criar Senha',
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureRegisterPassword
+                      ? Icons.visibility_off
+                      : Icons.visibility,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscureRegisterPassword = !_obscureRegisterPassword;
+                  });
+                },
+              ),
+            ),
+            validator: (val) {
+              if (val == null || val.length < 4) {
+                return 'Mínimo de 4 caracteres';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -439,3 +431,4 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 }
+

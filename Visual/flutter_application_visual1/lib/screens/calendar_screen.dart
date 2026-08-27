@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/event_model.dart';
 import '../services/event_service.dart';
 import '../widgets/event_dialog.dart';
@@ -269,13 +269,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             crossAxisSpacing: 4,
                             mainAxisSpacing: 4,
                           ),
-                          itemCount: daysInMonth + firstWeekday,
+                          itemCount: 42, // 6 semanas fixas × 7 dias
                           itemBuilder: (context, index) {
-                            if (index < firstWeekday) {
+                            final dayNumber = index - firstWeekday + 1;
+                            if (dayNumber < 1 || dayNumber > daysInMonth) {
                               return const SizedBox.shrink();
                             }
 
-                            final dayNumber = index - firstWeekday + 1;
                             final cellDate = DateTime(
                               _focusedMonth.year,
                               _focusedMonth.month,
