@@ -92,14 +92,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              EventService().deleteEvent(event.id);
+              final deleted = EventService().deleteEvent(event.id);
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Evento excluído com sucesso'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              if (deleted != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Evento "${event.title}" excluído'),
+                    action: SnackBarAction(
+                      label: 'DESFAZER',
+                      textColor: Colors.amber,
+                      onPressed: () {
+                        EventService().restoreEvent(deleted);
+                      },
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
             },
             child: const Text('Excluir'),
           ),
@@ -133,7 +143,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
-            title: const Text('Calendário Mensal'),
+            title: const Text('Calendário'),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new, size: 20),
               onPressed: () => Navigator.pop(context),
@@ -160,7 +170,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 },
               ),
               IconButton(
-                tooltip: 'Ditar evento',
+                tooltip: 'Ditar evento por voz',
                 icon: const Icon(Icons.mic),
                 onPressed: () => VoiceRecordModal.show(context),
               ),
@@ -186,7 +196,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14.0,
-                    vertical: 8.0,
+                    vertical: 6.0,
                   ),
                   child: Container(
                     decoration: BoxDecoration(
@@ -215,7 +225,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             Text(
                               '${_monthNames[_focusedMonth.month - 1]} ${_focusedMonth.year}',
                               style: TextStyle(
-                                fontSize: 19,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: colorScheme.onSurface,
                               ),
@@ -227,7 +237,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
 
                         // Cabeçalho dos dias da semana
                         Row(
@@ -238,7 +248,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 child: Text(
                                   day,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: isWeekend
                                         ? colorScheme.primary
@@ -256,7 +266,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           color: colorScheme.primary.withValues(alpha: 0.15),
                           height: 1,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
 
                         // Grade dos dias do mês
                         GridView.builder(
@@ -265,11 +275,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 7,
-                            childAspectRatio: 1.15,
+                            childAspectRatio: 1.2,
                             crossAxisSpacing: 4,
                             mainAxisSpacing: 4,
                           ),
-                          itemCount: 42, // 6 semanas fixas × 7 dias
+                          itemCount: 42,
                           itemBuilder: (context, index) {
                             final dayNumber = index - firstWeekday + 1;
                             if (dayNumber < 1 || dayNumber > daysInMonth) {
@@ -375,7 +385,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   child: Container(
                     width: double.infinity,
                     margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                     decoration: BoxDecoration(
                       color: isDark
                           ? const Color(0xFF14121E)
@@ -400,7 +410,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             Text(
                               'Eventos em ${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                               style: TextStyle(
-                                fontSize: 17,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: colorScheme.onSurface,
                               ),
@@ -426,7 +436,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
 
                         // Lista de Eventos ou Mensagem Vazia
                         Expanded(
@@ -437,15 +447,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     children: [
                                       Icon(
                                         Icons.event_available,
-                                        size: 48,
+                                        size: 44,
                                         color: colorScheme.primary
                                             .withValues(alpha: 0.4),
                                       ),
-                                      const SizedBox(height: 10),
+                                      const SizedBox(height: 8),
                                       Text(
                                         'Nenhum evento para este dia',
                                         style: TextStyle(
-                                          fontSize: 15,
+                                          fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                           color: colorScheme.onSurface
                                               .withValues(alpha: 0.7),
@@ -455,7 +465,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       Text(
                                         'Toque em "Novo Evento" para agendar',
                                         style: TextStyle(
-                                          fontSize: 13,
+                                          fontSize: 12,
                                           color: colorScheme.onSurface
                                               .withValues(alpha: 0.5),
                                         ),
@@ -474,8 +484,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       child: ListTile(
                                         contentPadding:
                                             const EdgeInsets.symmetric(
-                                          horizontal: 16,
+                                          horizontal: 14,
                                           vertical: 6,
+                                        ),
+                                        onTap: () => EventDialog.show(
+                                          context,
+                                          eventToEdit: event,
                                         ),
                                         leading: Container(
                                           padding: const EdgeInsets.all(10),
@@ -494,7 +508,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                         title: Text(
                                           event.title,
                                           style: TextStyle(
-                                            fontSize: 16,
+                                            fontSize: 15,
                                             fontWeight: FontWeight.bold,
                                             decoration: event.isCompleted
                                                 ? TextDecoration.lineThrough
@@ -518,6 +532,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                                     fontWeight:
                                                         FontWeight.w600,
                                                     color: colorScheme.primary,
+                                                    fontSize: 12,
                                                   ),
                                                 ),
                                                 Container(
@@ -552,7 +567,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                               Text(
                                                 event.description,
                                                 style: TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: 12,
                                                   color: colorScheme.onSurface
                                                       .withValues(alpha: 0.7),
                                                 ),
@@ -564,6 +579,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             IconButton(
+                                              tooltip: event.isCompleted
+                                                  ? 'Marcar como pendente'
+                                                  : 'Marcar como concluído',
                                               icon: Icon(
                                                 event.isCompleted
                                                     ? Icons.check_circle

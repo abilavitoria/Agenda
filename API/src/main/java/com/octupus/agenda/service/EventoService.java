@@ -46,7 +46,7 @@ public class EventoService {
     @Transactional
     public EventoResponse atualizar(Long id, EventoRequest eventoRequest){
         Evento evento = eventoRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Evento não encontrado:" + id));
+                .orElseThrow(() -> new EventoNaoEncontrado("Evento não encontrado:" + id));
         evento.setTitulo(eventoRequest.titulo());
         evento.setDataEvento(eventoRequest.dataEvento());
         evento.setDataLembrete(eventoRequest.dataLembrete());
@@ -59,7 +59,7 @@ public class EventoService {
     @Transactional
     public void deletar(Long id){
         if(!eventoRepo.existsById(id)){
-            throw new RuntimeException("Evento não encontrado:" + id);
+            throw new EventoNaoEncontrado("Evento não encontrado:" + id);
         }
         eventoRepo.deleteById(id);
     }

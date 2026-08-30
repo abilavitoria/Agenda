@@ -1,5 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import '../models/event_model.dart';
 import '../services/event_service.dart';
+import '../services/speech_service.dart';
+import '../services/voice_event_parser.dart';
+import 'event_dialog.dart';
 
 class VoiceRecordModal extends StatefulWidget {
   const VoiceRecordModal({super.key});
@@ -18,87 +22,187 @@ class VoiceRecordModal extends StatefulWidget {
 }
 
 class _VoiceRecordModalState extends State<VoiceRecordModal>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-  final TextEditingController _textController = TextEditingController();
-  bool _isListening = true;
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  late AnimationController _waveController;
 
-  final List<Map<String, dynamic>> _quickSuggestions = [
+  final TextEditingController _textController = TextEditingController();
+  final SpeechService _speechService = SpeechService();
+
+  ParsedVoiceEvent? _parsedEvent;
+  bool _isListening = false;
+  String _recognizedText = '';
+  String? _statusMessage;
+
+  final List<Map<String, String>> _sampleVoicePhrases = [
     {
-      'label': 'Casamento dia 20 de Abril às 16:00',
-      'title': 'Casamento',
-      'category': 'Social',
-      'month': 4,
-      'day': 20,
-      'time': '16:00',
+      'title': 'Reunião de equipe',
+      'phrase': 'Reunião com equipe amanhã às 10:00',
     },
     {
-      'label': 'Reunião com equipe amanhã às 10:00',
-      'title': 'Reunião com equipe',
-      'category': 'Trabalho',
-      'offsetDays': 1,
-      'time': '10:00',
+      'title': 'Consulta médica',
+      'phrase': 'Consulta médica sexta-feira às 14:30',
     },
     {
-      'label': 'Consulta Médica na sexta às 14:30',
-      'title': 'Consulta Médica',
-      'category': 'Saúde',
-      'offsetDays': 3,
-      'time': '14:30',
+      'title': 'Treino de academia',
+      'phrase': 'Treino de academia hoje às 19:00',
     },
     {
-      'label': 'Treino de Academia hoje às 19:00',
-      'title': 'Treino de Academia',
-      'category': 'Pessoal',
-      'offsetDays': 0,
-      'time': '19:00',
+      'title': 'Aniversário',
+      'phrase': 'Aniversário do Lucas no sábado às 20 horas',
     },
   ];
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
+
+    _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.25).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.22).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+
+    _textController.addListener(_onTextChanged);
+
+    // Inicia escuta automática com pequeno delay para fluidez de abertura do modal
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startListening();
+    });
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _pulseController.dispose();
+    _waveController.dispose();
     _textController.dispose();
+    _speechService.stopListening();
     super.dispose();
   }
 
-  void _createEventFromData({
-    required String title,
-    required DateTime date,
-    required String time,
-    required String category,
-  }) {
+  void _onTextChanged() {
+    final text = _textController.text.trim();
+    if (text.isNotEmpty) {
+      setState(() {
+        _parsedEvent = VoiceEventParser.parse(text);
+      });
+    } else {
+      setState(() {
+        _parsedEvent = null;
+      });
+    }
+  }
+
+  Future<void> _startListening() async {
+    setState(() {
+      _isListening = true;
+      _statusMessage = 'Ouvindo... Fale seu compromisso';
+    });
+
+    final success = await _speechService.initSpeech();
+    if (!success && mounted) {
+      setState(() {
+        _isListening = false;
+        _statusMessage =
+            _speechService.errorMessage ?? 'Microfone não disponível. Você pode digitar ou usar os exemplos.';
+      });
+      return;
+    }
+
+    if (!mounted) return;
+
+    await _speechService.startListening(
+      onResult: (words, isFinal) {
+        if (!mounted) return;
+        setState(() {
+          _recognizedText = words;
+          _textController.text = words;
+          _parsedEvent = VoiceEventParser.parse(words);
+
+          if (isFinal) {
+            _isListening = false;
+            _statusMessage = 'Voz reconhecida com sucesso!';
+          }
+        });
+      },
+    );
+  }
+
+  Future<void> _stopListening() async {
+    await _speechService.stopListening();
+    if (mounted) {
+      setState(() {
+        _isListening = false;
+        _statusMessage = _recognizedText.isNotEmpty
+            ? 'Processado!'
+            : 'Gravação finalizada';
+      });
+    }
+  }
+
+  void _toggleListening() {
+    if (_isListening) {
+      _stopListening();
+    } else {
+      _startListening();
+    }
+  }
+
+  void _applySamplePhrase(String phrase) {
+    _speechService.stopListening();
+    setState(() {
+      _isListening = false;
+      _recognizedText = phrase;
+      _textController.text = phrase;
+      _parsedEvent = VoiceEventParser.parse(phrase);
+      _statusMessage = 'Exemplo selecionado!';
+    });
+  }
+
+  void _saveEvent() {
+    if (_parsedEvent == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Fale ou digite seu evento antes de salvar.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final parsed = _parsedEvent!;
     EventService().addEventFromVoice(
-      title: title,
-      date: date,
-      time: time,
-      category: category,
-      description: 'Criado rapidamente via comando de voz',
+      title: parsed.title,
+      date: parsed.date,
+      time: parsed.time,
+      category: parsed.category,
+      description: 'Criado via comando de voz: "${parsed.originalText}"',
     );
 
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Evento "$title" adicionado à agenda!',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Evento "${parsed.title}" adicionado à agenda!',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         behavior: SnackBarBehavior.floating,
@@ -107,26 +211,20 @@ class _VoiceRecordModalState extends State<VoiceRecordModal>
     );
   }
 
-  void _handleCustomConfirm() {
-    final text = _textController.text.trim();
-    if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Digite ou fale o evento para salvar'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    final now = DateTime.now();
-    _createEventFromData(
-      title: text,
-      date: DateTime(now.year, now.month, now.day + 1),
-      time: '14:00',
-      category: 'Geral',
+  void _openInEventDialog() {
+    if (_parsedEvent == null) return;
+    final parsed = _parsedEvent!;
+    final tempEvent = EventModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: parsed.title,
+      date: parsed.date,
+      time: parsed.time,
+      category: parsed.category,
+      description: 'Criado via voz: "${parsed.originalText}"',
     );
+
+    Navigator.pop(context);
+    EventDialog.show(context, eventToEdit: tempEvent);
   }
 
   @override
@@ -145,193 +243,335 @@ class _VoiceRecordModalState extends State<VoiceRecordModal>
         ),
       ),
       padding: EdgeInsets.only(
-        top: 24,
-        left: 24,
-        right: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Barra de arraste
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: colorScheme.onSurface.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: colorScheme.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Ícone animado do microfone
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isListening = !_isListening;
-                  if (_isListening) {
-                    _animationController.repeat(reverse: true);
-                  } else {
-                    _animationController.stop();
-                  }
-                });
-              },
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colorScheme.primary,
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.primary.withValues(
-                          alpha: isDark ? 0.6 : 0.35,
-                        ),
-                        blurRadius: isDark ? 28 : 16,
-                        spreadRadius: isDark ? 6 : 3,
+            // Cabeçalho do modal
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.mic, color: colorScheme.primary, size: 24),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Criar Evento por Voz',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
-                    ],
-                  ),
-                  child: Icon(
-                    _isListening ? Icons.mic : Icons.mic_off,
-                    size: 46,
-                    color: Colors.white,
+                    ),
+                  ],
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(
+                    Icons.close,
+                    color: colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Botão Animado do Microfone
+            GestureDetector(
+              onTap: _toggleListening,
+              child: AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  final scale = _isListening ? _pulseAnimation.value : 1.0;
+                  return Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _isListening
+                            ? colorScheme.primary
+                            : (isDark ? const Color(0xFF2C243B) : const Color(0xFFDDD4C7)),
+                        boxShadow: _isListening
+                            ? [
+                                BoxShadow(
+                                  color: colorScheme.primary.withValues(
+                                    alpha: isDark ? 0.6 : 0.4,
+                                  ),
+                                  blurRadius: 28,
+                                  spreadRadius: 6,
+                                ),
+                              ]
+                            : [],
+                      ),
+                      child: Icon(
+                        _isListening ? Icons.mic : Icons.mic_none,
+                        size: 44,
+                        color: _isListening ? Colors.white : colorScheme.primary,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 14),
 
+            // Status Text
             Text(
-              _isListening ? 'Ouvindo seu evento...' : 'Toque para falar',
+              _statusMessage ??
+                  (_isListening
+                      ? 'Ouvindo... Pode falar!'
+                      : 'Toque no microfone para falar'),
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: _isListening
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withValues(alpha: 0.8),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
-              'Diga o título, data e horário ou selecione uma sugestão rápida',
+              'Ex: "Dentista amanhã às 14 horas" ou "Reunião de alinhamento dia 20 às 15:30"',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
+                fontSize: 12,
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
-            // Campo para digitar ou ver a transcrição
+            // Campo de Transcrição e Edição
             TextField(
               controller: _textController,
-              style: TextStyle(color: colorScheme.onSurface),
+              style: TextStyle(color: colorScheme.onSurface, fontSize: 15),
               decoration: InputDecoration(
-                hintText: 'Ou digite: "Dentista amanhã às 15h"',
-                prefixIcon: const Icon(Icons.record_voice_over),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _handleCustomConfirm,
+                hintText: 'O que você falar aparecerá aqui...',
+                prefixIcon: Icon(
+                  Icons.record_voice_over,
+                  color: colorScheme.primary,
                 ),
+                suffixIcon: _textController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _textController.clear();
+                          setState(() {
+                            _recognizedText = '';
+                            _parsedEvent = null;
+                          });
+                        },
+                      )
+                    : null,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Sugestões rápidas
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Sugestões rápidas:',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface.withValues(alpha: 0.8),
+            // Card de Evento Reconhecido (Preview Inteligente)
+            if (_parsedEvent != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF1B1728)
+                      : const Color(0xFFEBE3D6),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            ..._quickSuggestions.map((sug) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: InkWell(
-                  onTap: () {
-                    final now = DateTime.now();
-                    DateTime targetDate;
-                    if (sug.containsKey('month')) {
-                      final year = now.month > sug['month']
-                          ? now.year + 1
-                          : now.year;
-                      targetDate = DateTime(year, sug['month'], sug['day']);
-                    } else {
-                      final offset = sug['offsetDays'] as int;
-                      targetDate = DateTime(
-                        now.year,
-                        now.month,
-                        now.day + offset,
-                      );
-                    }
-
-                    _createEventFromData(
-                      title: sug['title'],
-                      date: targetDate,
-                      time: sug['time'],
-                      category: sug['category'],
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF1B1728)
-                          : const Color(0xFFEFE9DF),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(
-                          Icons.add_circle_outline,
-                          color: colorScheme.primary,
-                          size: 18,
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.auto_awesome,
+                              color: colorScheme.primary,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Evento Identificado',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           child: Text(
-                            sug['label'],
+                            _parsedEvent!.category,
                             style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: colorScheme.onSurface,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.primary,
                             ),
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _parsedEvent!.title,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _parsedEvent!.formattedDate,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorScheme.onSurface.withValues(alpha: 0.85),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _parsedEvent!.time,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorScheme.onSurface.withValues(alpha: 0.85),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Botões de Ação
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _openInEventDialog,
+                      icon: const Icon(Icons.edit_note, size: 18),
+                      label: const Text('Editar Campos'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _saveEvent,
+                      icon: const Icon(Icons.check_circle, size: 18),
+                      label: const Text('Salvar Evento'),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              // Sugestões Rápidas de Frases
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Ou toque em um exemplo rápido:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                 ),
-              );
-            }),
-
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _handleCustomConfirm,
-                child: const Text('Confirmar e Salvar Evento'),
               ),
-            ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _sampleVoicePhrases.map((sample) {
+                  return InkWell(
+                    onTap: () => _applySamplePhrase(sample['phrase']!),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF1F1B2C)
+                            : const Color(0xFFEDE5D9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: colorScheme.primary.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.mic_external_on,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            sample['phrase']!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ],
         ),
       ),

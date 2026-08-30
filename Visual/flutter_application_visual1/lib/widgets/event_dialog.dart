@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/event_model.dart';
 import '../services/event_service.dart';
+import '../services/speech_service.dart';
 
 class EventDialog extends StatefulWidget {
   final EventModel? eventToEdit;
@@ -42,6 +43,10 @@ class _EventDialogState extends State<EventDialog> {
   late String _selectedCategory;
   late int _selectedReminderMinutes;
 
+  final SpeechService _speechService = SpeechService();
+  bool _isDictatingTitle = false;
+  bool _isDictatingDesc = false;
+
   final List<String> _categories = const [
     'Trabalho',
     'Pessoal',
@@ -78,9 +83,62 @@ class _EventDialogState extends State<EventDialog> {
 
   @override
   void dispose() {
+    _speechService.stopListening();
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _dictateField({required bool isTitle}) async {
+    if ((isTitle && _isDictatingTitle) || (!isTitle && _isDictatingDesc)) {
+      await _speechService.stopListening();
+      setState(() {
+        _isDictatingTitle = false;
+        _isDictatingDesc = false;
+      });
+      return;
+    }
+
+    final success = await _speechService.initSpeech();
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _speechService.errorMessage ?? 'Microfone não disponível no dispositivo.',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      if (isTitle) {
+        _isDictatingTitle = true;
+        _isDictatingDesc = false;
+      } else {
+        _isDictatingTitle = false;
+        _isDictatingDesc = true;
+      }
+    });
+
+    await _speechService.startListening(
+      onResult: (words, isFinal) {
+        if (!mounted) return;
+        setState(() {
+          if (isTitle) {
+            _titleController.text = words;
+          } else {
+            _descriptionController.text = words;
+          }
+          if (isFinal) {
+            _isDictatingTitle = false;
+            _isDictatingDesc = false;
+          }
+        });
+      },
+    );
   }
 
   Future<void> _pickDate() async {
@@ -174,11 +232,19 @@ class _EventDialogState extends State<EventDialog> {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          widget.eventToEdit != null
-              ? 'Evento atualizado com sucesso!'
-              : 'Evento cadastrado com sucesso!',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                widget.eventToEdit != null
+                    ? 'Evento atualizado com sucesso!'
+                    : 'Evento cadastrado com sucesso!',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         behavior: SnackBarBehavior.floating,
@@ -272,9 +338,19 @@ class _EventDialogState extends State<EventDialog> {
               TextFormField(
                 controller: _titleController,
                 style: TextStyle(color: colorScheme.onSurface),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Ex: Reunião, Casamento, Dentista',
-                  prefixIcon: Icon(Icons.event_note),
+                  prefixIcon: const Icon(Icons.event_note),
+                  suffixIcon: IconButton(
+                    tooltip: 'Ditar título com microfone',
+                    icon: Icon(
+                      _isDictatingTitle ? Icons.mic : Icons.mic_none,
+                      color: _isDictatingTitle
+                          ? colorScheme.primary
+                          : colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    onPressed: () => _dictateField(isTitle: true),
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -363,8 +439,8 @@ class _EventDialogState extends State<EventDialog> {
                                   : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color:
-                                    colorScheme.onSurface.withValues(alpha: 0.2),
+                                color: colorScheme.onSurface
+                                    .withValues(alpha: 0.2),
                               ),
                             ),
                             child: Row(
@@ -381,6 +457,7 @@ class _EventDialogState extends State<EventDialog> {
                                     style: TextStyle(
                                       color: colorScheme.onSurface,
                                       fontWeight: FontWeight.w600,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ),
@@ -419,8 +496,8 @@ class _EventDialogState extends State<EventDialog> {
                                   : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color:
-                                    colorScheme.onSurface.withValues(alpha: 0.2),
+                                color: colorScheme.onSurface
+                                    .withValues(alpha: 0.2),
                               ),
                             ),
                             child: Row(
@@ -437,6 +514,7 @@ class _EventDialogState extends State<EventDialog> {
                                     style: TextStyle(
                                       color: colorScheme.onSurface,
                                       fontWeight: FontWeight.w600,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ),
@@ -469,11 +547,26 @@ class _EventDialogState extends State<EventDialog> {
                   prefixIcon: Icon(Icons.notifications_active_outlined),
                 ),
                 items: const [
-                  DropdownMenuItem(value: 0, child: Text('No momento do evento')),
-                  DropdownMenuItem(value: 15, child: Text('15 minutos antes')),
-                  DropdownMenuItem(value: 30, child: Text('30 minutos antes')),
-                  DropdownMenuItem(value: 60, child: Text('1 hora antes')),
-                  DropdownMenuItem(value: 1440, child: Text('1 dia antes')),
+                  DropdownMenuItem(
+                    value: 0,
+                    child: Text('No momento do evento'),
+                  ),
+                  DropdownMenuItem(
+                    value: 15,
+                    child: Text('15 minutos antes'),
+                  ),
+                  DropdownMenuItem(
+                    value: 30,
+                    child: Text('30 minutos antes'),
+                  ),
+                  DropdownMenuItem(
+                    value: 60,
+                    child: Text('1 hora antes'),
+                  ),
+                  DropdownMenuItem(
+                    value: 1440,
+                    child: Text('1 dia antes'),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -499,9 +592,19 @@ class _EventDialogState extends State<EventDialog> {
                 controller: _descriptionController,
                 maxLines: 2,
                 style: TextStyle(color: colorScheme.onSurface),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Adicione detalhes adicionais...',
-                  prefixIcon: Icon(Icons.notes),
+                  prefixIcon: const Icon(Icons.notes),
+                  suffixIcon: IconButton(
+                    tooltip: 'Ditar notas com microfone',
+                    icon: Icon(
+                      _isDictatingDesc ? Icons.mic : Icons.mic_none,
+                      color: _isDictatingDesc
+                          ? colorScheme.primary
+                          : colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    onPressed: () => _dictateField(isTitle: false),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -514,7 +617,10 @@ class _EventDialogState extends State<EventDialog> {
                   icon: const Icon(Icons.check_circle),
                   label: Text(
                     isEditing ? 'Atualizar Evento' : 'Salvar Evento',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

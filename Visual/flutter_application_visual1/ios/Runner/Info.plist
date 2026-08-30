@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Este aplicativo utiliza o reconhecimento de voz para permitir o cadastro inteligente de eventos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Este aplicativo precisa de acesso ao microfone para permitir ditar eventos e notas por voz.</string>
 </dict>
 </plist>

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/event_model.dart';
 import '../services/auth_service.dart';
 import '../services/event_service.dart';
@@ -39,13 +39,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openAllEvents() {
+  void _openAllEvents({String? initialFilter}) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AllEventsScreen(
           onToggleTheme: widget.onToggleTheme,
           isDarkMode: widget.isDarkMode,
+          initialStatusFilter: initialFilter ?? 'Todos',
         ),
       ),
     );
@@ -103,13 +104,16 @@ class _HomeScreenState extends State<HomeScreen> {
         final allEvents = eventService.events;
         final completedCount = allEvents.where((e) => e.isCompleted).length;
         final pendingCount = allEvents.length - completedCount;
+        final todayEvents = allEvents.where((e) => e.isToday).length;
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
+            titleSpacing: 16,
             title: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
@@ -123,18 +127,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  'Minha Agenda',
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Minha Agenda',
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ],
             ),
             actions: [
+              // Botão Calendário
+              IconButton(
+                tooltip: 'Calendário Mensal',
+                icon: Icon(Icons.calendar_month, color: colorScheme.primary),
+                onPressed: _openCalendar,
+              ),
+
               // Botão Alternar Tema
               IconButton(
                 tooltip: isDark ? 'Modo Claro' : 'Modo Escuro',
@@ -147,47 +162,67 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Botão Acessar Calendário Mensal
-              Padding(
-                padding: const EdgeInsets.only(right: 6.0),
-                child: TextButton.icon(
-                  onPressed: _openCalendar,
-                  icon: Icon(Icons.calendar_month, color: colorScheme.primary),
-                  label: Text(
-                    'Calendário',
-                    style: TextStyle(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor:
-                        colorScheme.primary.withValues(alpha: 0.12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Botão Logout
-              IconButton(
-                tooltip: 'Sair da conta',
+              // Menu Mais Opções (Logout, etc.)
+              PopupMenuButton<String>(
+                tooltip: 'Mais opções',
                 icon: Icon(
-                  Icons.logout,
+                  Icons.more_vert,
                   color: colorScheme.onSurface.withValues(alpha: 0.7),
-                  size: 20,
                 ),
-                onPressed: _handleLogout,
+                onSelected: (value) {
+                  if (value == 'all_events') {
+                    _openAllEvents();
+                  } else if (value == 'calendar') {
+                    _openCalendar();
+                  } else if (value == 'logout') {
+                    _handleLogout();
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'all_events',
+                    child: Row(
+                      children: [
+                        Icon(Icons.list_alt, size: 18),
+                        SizedBox(width: 10),
+                        Text('Todos os Eventos'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'calendar',
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_month, size: 18),
+                        SizedBox(width: 10),
+                        Text('Ver Calendário'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, color: Colors.red, size: 18),
+                        SizedBox(width: 10),
+                        Text(
+                          'Sair da Conta',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
             ],
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: () => EventDialog.show(context),
             backgroundColor: colorScheme.primary,
             foregroundColor: Colors.white,
-            tooltip: 'Adicionar Evento',
+            tooltip: 'Adicionar Evento Manualmente',
             child: const Icon(Icons.add),
           ),
           body: SafeArea(
@@ -232,8 +267,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: GestureDetector(
                       onTap: _openVoiceModal,
                       child: Container(
-                        width: 160,
-                        height: 160,
+                        width: 150,
+                        height: 150,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: colorScheme.primary,
@@ -250,25 +285,43 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: const Icon(
                           Icons.mic,
-                          size: 80,
+                          size: 76,
                           color: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // Texto de Instrução do Microfone
-                  Text(
-                    'Toque no microfone para ditar seu evento',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.primary,
+                  InkWell(
+                    onTap: _openVoiceModal,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            color: colorScheme.primary,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Toque no microfone para ditar seu evento',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 26),
 
                   // Próximo Evento Agendado (Card Dinâmico)
                   _buildNextEventCard(
@@ -276,6 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     nextEvent,
                     colorScheme,
                     isDark,
+                    eventService,
                   ),
                   const SizedBox(height: 18),
 
@@ -289,10 +343,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: Icons.pending_actions,
                           colorScheme: colorScheme,
                           isDark: isDark,
-                          onTap: _openAllEvents,
+                          onTap: () => _openAllEvents(initialFilter: 'Pendentes'),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildStatCard(
+                          title: 'Hoje',
+                          value: '$todayEvents',
+                          icon: Icons.today,
+                          colorScheme: colorScheme,
+                          isDark: isDark,
+                          onTap: _openCalendar,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: _buildStatCard(
                           title: 'Concluídos',
@@ -300,18 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: Icons.task_alt,
                           colorScheme: colorScheme,
                           isDark: isDark,
-                          onTap: _openAllEvents,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          title: 'Calendário',
-                          value: '${allEvents.length}',
-                          icon: Icons.calendar_month,
-                          colorScheme: colorScheme,
-                          isDark: isDark,
-                          onTap: _openCalendar,
+                          onTap: () => _openAllEvents(initialFilter: 'Concluídos'),
                         ),
                       ),
                     ],
@@ -322,12 +376,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: _openAllEvents,
+                      onPressed: () => _openAllEvents(),
                       icon: const Icon(Icons.list_alt),
                       label: const Text('Ver Lista Completa de Eventos'),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 36),
                 ],
               ),
             ),
@@ -342,10 +396,11 @@ class _HomeScreenState extends State<HomeScreen> {
     EventModel? nextEvent,
     ColorScheme colorScheme,
     bool isDark,
+    EventService eventService,
   ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF14121E) : const Color(0xFFF3EFEA),
         borderRadius: BorderRadius.circular(22),
@@ -377,7 +432,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Nenhum evento futuro',
+                        'Nenhum evento pendente',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -412,25 +467,48 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Icon(
                       Icons.event_note,
                       color: colorScheme.primary,
-                      size: 30,
+                      size: 28,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Próximo evento:',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Próximo evento:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                nextEvent.category,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${nextEvent.title} - ${nextEvent.formattedDate}',
+                          nextEvent.title,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -439,9 +517,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
-                          'Horário: ${nextEvent.time} • ${nextEvent.category}',
+                          '${nextEvent.formattedDate} às ${nextEvent.time}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -451,10 +529,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 14,
-                    color: colorScheme.onSurface.withValues(alpha: 0.5),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Concluir evento',
+                    icon: Icon(
+                      nextEvent.isCompleted
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      color: nextEvent.isCompleted
+                          ? Colors.green
+                          : colorScheme.primary,
+                    ),
+                    onPressed: () {
+                      eventService.toggleEventCompleted(nextEvent.id);
+                    },
                   ),
                 ],
               ),
@@ -474,7 +562,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF14121E) : const Color(0xFFF3EFEA),
           borderRadius: BorderRadius.circular(18),

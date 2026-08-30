@@ -1,16 +1,19 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/event_model.dart';
 import '../services/event_service.dart';
 import '../widgets/event_dialog.dart';
+import '../widgets/voice_record_modal.dart';
 
 class AllEventsScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
   final bool isDarkMode;
+  final String initialStatusFilter;
 
   const AllEventsScreen({
     super.key,
     required this.onToggleTheme,
     required this.isDarkMode,
+    this.initialStatusFilter = 'Todos',
   });
 
   @override
@@ -19,6 +22,8 @@ class AllEventsScreen extends StatefulWidget {
 
 class _AllEventsScreenState extends State<AllEventsScreen> {
   String _selectedCategory = 'Todas';
+  late String _statusFilter;
+  String _sortOrder = 'date_asc'; // 'date_asc', 'date_desc', 'title'
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -31,6 +36,18 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
     'Estudo',
     'Geral',
   ];
+
+  final List<String> _statusOptions = const [
+    'Todos',
+    'Pendentes',
+    'Concluídos',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _statusFilter = widget.initialStatusFilter;
+  }
 
   @override
   void dispose() {
@@ -55,14 +72,25 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              EventService().deleteEvent(event.id);
+              final deleted = EventService().deleteEvent(event.id);
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Evento excluído com sucesso'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+
+              if (deleted != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Evento "${event.title}" excluído'),
+                    action: SnackBarAction(
+                      label: 'DESFAZER',
+                      textColor: Colors.amber,
+                      onPressed: () {
+                        EventService().restoreEvent(deleted);
+                      },
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
             },
             child: const Text('Excluir'),
           ),
@@ -81,27 +109,41 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
     return ListenableBuilder(
       listenable: eventService,
       builder: (context, _) {
-        var allEvents = List<EventModel>.from(eventService.events);
+        var filteredList = List<EventModel>.from(eventService.events);
 
-        // Filtro de Categoria
+        // 1. Filtro de Status (Todos, Pendentes, Concluídos)
+        if (_statusFilter == 'Pendentes') {
+          filteredList = filteredList.where((e) => !e.isCompleted).toList();
+        } else if (_statusFilter == 'Concluídos') {
+          filteredList = filteredList.where((e) => e.isCompleted).toList();
+        }
+
+        // 2. Filtro de Categoria
         if (_selectedCategory != 'Todas') {
-          allEvents = allEvents
+          filteredList = filteredList
               .where((e) => e.category == _selectedCategory)
               .toList();
         }
 
-        // Filtro de Busca
+        // 3. Filtro de Busca
         if (_searchQuery.trim().isNotEmpty) {
           final query = _searchQuery.toLowerCase();
-          allEvents = allEvents
+          filteredList = filteredList
               .where((e) =>
                   e.title.toLowerCase().contains(query) ||
-                  e.description.toLowerCase().contains(query))
+                  e.description.toLowerCase().contains(query) ||
+                  e.category.toLowerCase().contains(query))
               .toList();
         }
 
-        // Ordenação por data/hora
-        allEvents.sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime));
+        // 4. Ordenação
+        if (_sortOrder == 'date_asc') {
+          filteredList.sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime));
+        } else if (_sortOrder == 'date_desc') {
+          filteredList.sort((a, b) => b.fullDateTime.compareTo(a.fullDateTime));
+        } else if (_sortOrder == 'title') {
+          filteredList.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        }
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
@@ -113,6 +155,12 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
             ),
             actions: [
               IconButton(
+                tooltip: 'Ditar evento por voz',
+                icon: const Icon(Icons.mic),
+                onPressed: () => VoiceRecordModal.show(context),
+              ),
+              IconButton(
+                tooltip: isDark ? 'Modo Claro' : 'Modo Escuro',
                 onPressed: widget.onToggleTheme,
                 icon: Icon(
                   isDark ? Icons.light_mode : Icons.dark_mode,
@@ -121,20 +169,102 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                       : colorScheme.primary,
                 ),
               ),
+              PopupMenuButton<String>(
+                tooltip: 'Ordenar eventos',
+                icon: const Icon(Icons.sort),
+                onSelected: (val) {
+                  setState(() => _sortOrder = val);
+                },
+                itemBuilder: (ctx) => [
+                  PopupMenuItem(
+                    value: 'date_asc',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.arrow_upward,
+                          size: 18,
+                          color: _sortOrder == 'date_asc'
+                              ? colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Mais próximos primeiro',
+                          style: TextStyle(
+                            fontWeight: _sortOrder == 'date_asc'
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'date_desc',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.arrow_downward,
+                          size: 18,
+                          color: _sortOrder == 'date_desc'
+                              ? colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Mais distantes primeiro',
+                          style: TextStyle(
+                            fontWeight: _sortOrder == 'date_desc'
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'title',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sort_by_alpha,
+                          size: 18,
+                          color: _sortOrder == 'title'
+                              ? colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Ordem alfabética (A-Z)',
+                          style: TextStyle(
+                            fontWeight: _sortOrder == 'title'
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          floatingActionButton: FloatingActionButton(
+          floatingActionButton: FloatingActionButton.extended(
             onPressed: () => EventDialog.show(context),
             backgroundColor: colorScheme.primary,
             foregroundColor: Colors.white,
-            child: const Icon(Icons.add),
+            icon: const Icon(Icons.add),
+            label: const Text(
+              'Novo Evento',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           body: SafeArea(
             child: Column(
               children: [
                 // Barra de Busca
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: TextField(
                     controller: _searchController,
                     onChanged: (val) {
@@ -144,7 +274,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                     },
                     style: TextStyle(color: colorScheme.onSurface),
                     decoration: InputDecoration(
-                      hintText: 'Pesquisar eventos...',
+                      hintText: 'Pesquisar por título, notas ou categoria...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
@@ -161,9 +291,47 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                   ),
                 ),
 
+                // Filtros de Status (Chips: Todos, Pendentes, Concluídos)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  child: Row(
+                    children: _statusOptions.map((status) {
+                      final isSelected = _statusFilter == status;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: FilterChip(
+                          label: Text(
+                            status,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isSelected
+                                  ? Colors.white
+                                  : colorScheme.onSurface,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          selected: isSelected,
+                          selectedColor: colorScheme.primary,
+                          checkmarkColor: Colors.white,
+                          backgroundColor: isDark
+                              ? const Color(0xFF1F1B2C)
+                              : const Color(0xFFE5DDD0),
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => _statusFilter = status);
+                            }
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+
                 // Filtros de Categoria (Chips horizontais)
                 SizedBox(
-                  height: 48,
+                  height: 44,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -178,6 +346,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                           label: Text(
                             cat,
                             style: TextStyle(
+                              fontSize: 12,
                               color: isSelected
                                   ? (isDark ? Colors.black : Colors.white)
                                   : colorScheme.onSurface,
@@ -208,11 +377,29 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
+
+                // Contador de Resultados
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${filteredList.length} evento(s) encontrado(s)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
                 // Lista de Eventos
                 Expanded(
-                  child: allEvents.isEmpty
+                  child: filteredList.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -245,20 +432,21 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          itemCount: allEvents.length,
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                          itemCount: filteredList.length,
                           itemBuilder: (context, index) {
-                            final event = allEvents[index];
+                            final event = filteredList[index];
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
+                                  horizontal: 14,
                                   vertical: 8,
+                                ),
+                                onTap: () => EventDialog.show(
+                                  context,
+                                  eventToEdit: event,
                                 ),
                                 leading: Container(
                                   width: 48,
@@ -307,7 +495,7 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                                         : null,
                                     color: event.isCompleted
                                         ? colorScheme.onSurface
-                                            .withValues(alpha: 0.5)
+                                        .withValues(alpha: 0.5)
                                         : colorScheme.onSurface,
                                   ),
                                 ),
@@ -316,16 +504,40 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                                       CrossAxisAlignment.start,
                                   children: [
                                     const SizedBox(height: 4),
-                                    Text(
-                                      '${event.formattedDate} às ${event.time} • ${event.category}',
-                                      style: TextStyle(
-                                        color: colorScheme.primary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '${event.formattedDate} às ${event.time}  •  ',
+                                          style: TextStyle(
+                                            color: colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 7,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.primary
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            event.category,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: colorScheme.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     if (event.description.isNotEmpty) ...[
-                                      const SizedBox(height: 3),
+                                      const SizedBox(height: 4),
                                       Text(
                                         event.description,
                                         style: TextStyle(
@@ -333,6 +545,8 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                                           color: colorScheme.onSurface
                                               .withValues(alpha: 0.7),
                                         ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
                                   ],
@@ -341,6 +555,9 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
+                                      tooltip: event.isCompleted
+                                          ? 'Marcar como pendente'
+                                          : 'Marcar como concluído',
                                       icon: Icon(
                                         event.isCompleted
                                             ? Icons.check_circle
@@ -435,6 +652,6 @@ class _AllEventsScreenState extends State<AllEventsScreen> {
       'NOV',
       'DEZ',
     ];
-    return abbrs[month - 1];
+    return abbrs[(month - 1).clamp(0, 11)];
   }
 }

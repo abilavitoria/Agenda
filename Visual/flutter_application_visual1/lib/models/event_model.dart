@@ -1,8 +1,8 @@
-﻿class EventModel {
+class EventModel {
   final String id;
   final String title;
   final DateTime date;
-  final String time;
+  final String time; // HH:mm
   final String category;
   final String description;
   final int reminderMinutesBefore;
@@ -20,10 +20,10 @@
   });
 
   String get dateKey =>
-      '--';
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   String get formattedDate =>
-      '//';
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
   DateTime get fullDateTime {
     final parts = time.split(':');
@@ -32,6 +32,18 @@
     if (parts.isNotEmpty) hour = int.tryParse(parts[0]) ?? 0;
     if (parts.length > 1) minute = int.tryParse(parts[1]) ?? 0;
     return DateTime(date.year, date.month, date.day, hour, minute);
+  }
+
+  bool get isToday {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+  }
+
+  bool get isPast {
+    final now = DateTime.now();
+    return fullDateTime.isBefore(now);
   }
 
   EventModel copyWith({
@@ -72,14 +84,18 @@
 
   factory EventModel.fromMap(Map<String, dynamic> map) {
     return EventModel(
-      id: map['id'] ?? '',
-      title: map['title'] ?? '',
-      date: DateTime.parse(map['date']),
-      time: map['time'] ?? '12:00',
-      category: map['category'] ?? 'Geral',
-      description: map['description'] ?? '',
-      reminderMinutesBefore: map['reminderMinutesBefore'] ?? 30,
-      isCompleted: map['isCompleted'] ?? false,
+      id: map['id']?.toString() ?? '',
+      title: map['title']?.toString() ?? '',
+      date: map['date'] != null
+          ? DateTime.parse(map['date'])
+          : DateTime.now(),
+      time: map['time']?.toString() ?? '12:00',
+      category: map['category']?.toString() ?? 'Geral',
+      description: map['description']?.toString() ?? '',
+      reminderMinutesBefore: map['reminderMinutesBefore'] is int
+          ? map['reminderMinutesBefore']
+          : int.tryParse(map['reminderMinutesBefore']?.toString() ?? '30') ?? 30,
+      isCompleted: map['isCompleted'] == true,
     );
   }
 }
