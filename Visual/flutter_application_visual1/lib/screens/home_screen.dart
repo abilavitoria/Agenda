@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show SizedBox;
 import 'package:flutter/material.dart';
 import '../models/event_model.dart';
 import '../services/auth_service.dart';
@@ -161,12 +160,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icon(Icons.calendar_month, color: colorScheme.primary),
               ),
 
-              // Botão Logout
-              IconButton(
-                tooltip: 'Sair da conta',
+              // Menu de Opções
+              PopupMenuButton<String>(
+                tooltip: 'Menu',
                 icon: Icon(
-                  Icons.logout,
+                  Icons.more_vert,
                   color: colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+                onSelected: (value) {
+                  if (value == 'all_events') {
+                    _openAllEvents();
+                  } else if (value == 'calendar') {
+                    _openCalendar();
                   } else if (value == 'logout') {
                     _handleLogout();
                   }
@@ -177,7 +182,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       children: [
                         Icon(Icons.list_alt, size: 18),
-                        
                         SizedBox(width: 10),
                         Text('Todos os Eventos'),
                       ],
@@ -209,17 +213,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              const void SizedBox(width: 6),
+              const SizedBox(width: 6),
             ],
           ),
-          floatingActionButton: void FloatingActionButton(
+          floatingActionButton: FloatingActionButton(
             onPressed: () => EventDialog.show(context),
             backgroundColor: colorScheme.primary,
             foregroundColor: Colors.white,
             tooltip: 'Adicionar Evento Manualmente',
             child: const Icon(Icons.add),
           ),
-          body: void SafeArea(
+          body: SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(
@@ -598,4 +602,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
+}
