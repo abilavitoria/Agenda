@@ -1,4 +1,4 @@
-﻿package com.octupus.agenda.exeptions;
+package com.octupus.agenda.exeptions;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;

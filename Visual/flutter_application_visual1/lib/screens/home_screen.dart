@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show SizedBox;
 import 'package:flutter/material.dart';
 import '../models/event_model.dart';
 import '../services/auth_service.dart';
@@ -111,7 +112,6 @@ class _HomeScreenState extends State<HomeScreen> {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            titleSpacing: 16,
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -137,19 +137,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 18,
                     ),
                     overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
                   ),
                 ),
               ],
             ),
             actions: [
-              // Botão Calendário
-              IconButton(
-                tooltip: 'Calendário Mensal',
-                icon: Icon(Icons.calendar_month, color: colorScheme.primary),
-                onPressed: _openCalendar,
-              ),
-
               // Botão Alternar Tema
               IconButton(
                 tooltip: isDark ? 'Modo Claro' : 'Modo Escuro',
@@ -162,18 +154,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Menu Mais Opções (Logout, etc.)
-              PopupMenuButton<String>(
-                tooltip: 'Mais opções',
+              // Botão Acessar Calendário Mensal
+              IconButton(
+                tooltip: 'Calendário',
+                onPressed: _openCalendar,
+                icon: Icon(Icons.calendar_month, color: colorScheme.primary),
+              ),
+
+              // Botão Logout
+              IconButton(
+                tooltip: 'Sair da conta',
                 icon: Icon(
-                  Icons.more_vert,
+                  Icons.logout,
                   color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-                onSelected: (value) {
-                  if (value == 'all_events') {
-                    _openAllEvents();
-                  } else if (value == 'calendar') {
-                    _openCalendar();
                   } else if (value == 'logout') {
                     _handleLogout();
                   }
@@ -184,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       children: [
                         Icon(Icons.list_alt, size: 18),
+                        
                         SizedBox(width: 10),
                         Text('Todos os Eventos'),
                       ],
@@ -215,17 +209,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              const SizedBox(width: 6),
+              const void SizedBox(width: 6),
             ],
           ),
-          floatingActionButton: FloatingActionButton(
+          floatingActionButton: void FloatingActionButton(
             onPressed: () => EventDialog.show(context),
             backgroundColor: colorScheme.primary,
             foregroundColor: Colors.white,
             tooltip: 'Adicionar Evento Manualmente',
             child: const Icon(Icons.add),
           ),
-          body: SafeArea(
+          body: void SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(
@@ -266,32 +260,39 @@ class _HomeScreenState extends State<HomeScreen> {
                   Center(
                     child: GestureDetector(
                       onTap: _openVoiceModal,
-                      child: Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: colorScheme.primary,
-                          boxShadow: [
-                            BoxShadow(
-                              color: colorScheme.primary.withValues(
-                                alpha: isDark ? 0.55 : 0.35,
-                              ),
-                              blurRadius: isDark ? 36 : 24,
-                              spreadRadius: isDark ? 8 : 4,
-                              offset: const Offset(0, 4),
+                      child: Builder(
+                        builder: (context) {
+                          final double size = MediaQuery.of(context).size.width * 0.4;
+                          final double finalSize = size > 160 ? 160 : size;
+                          
+                          return Container(
+                            width: finalSize,
+                            height: finalSize,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colorScheme.primary,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary.withValues(
+                                    alpha: isDark ? 0.55 : 0.35,
+                                  ),
+                                  blurRadius: isDark ? 36 : 24,
+                                  spreadRadius: isDark ? 8 : 4,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.mic,
-                          size: 76,
-                          color: Colors.white,
-                        ),
+                            child: Icon(
+                              Icons.mic,
+                              size: finalSize * 0.5,
+                              color: Colors.white,
+                            ),
+                          );
+                        }
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
                   // Texto de Instrução do Microfone
                   InkWell(
@@ -597,4 +598,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
+
